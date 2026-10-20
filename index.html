@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Simulator - บทที่ 7-13</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sarabun', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+        .grid-btn.answered { background-color: #3b82f6; color: white; border-color: #3b82f6; }
+        .grid-btn.flagged { background-color: #f59e0b; color: white; border-color: #f59e0b; }
+        .grid-btn.active { outline: 3px solid #10b981; outline-offset: 2px; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-blue-600 dark:text-blue-400" id="header-title">Exam Simulator</h1>
+            <div class="flex items-center gap-4">
+                <!-- Timer -->
+                <div id="timer-display" class="hidden font-mono text-lg font-semibold bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-md">
+                    00:00
+                </div>
+                <!-- Dark Mode Toggle -->
+                <button onclick="toggleDarkMode()" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    <svg id="icon-sun" class="w-6 h-6 hidden text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="icon-moon" class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-6">
+        
+        <!-- Screen 1: Home (Select Chapter) -->
+        <div id="home-screen" class="w-full flex-grow">
+            <h2 class="text-2xl font-bold mb-6 text-center">เลือกชุดข้อสอบเพื่อเริ่มต้น</h2>
+            <div id="chapter-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Chapters will be injected here -->
+            </div>
+        </div>
+
+        <!-- Screen 2: Exam Area -->
+        <div id="exam-screen" class="hidden w-full flex-col md:flex-row gap-6 flex-grow">
+            
+            <!-- Question Area -->
+            <div class="flex-grow flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <div class="flex justify-between items-center mb-6 pb-4 border-b dark:border-gray-700">
+                    <h3 class="text-lg font-semibold" id="question-number">Question 1 of 10</h3>
+                    <button id="btn-flag" onclick="toggleFlag()" class="flex items-center gap-2 text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 transition font-medium px-3 py-1.5 rounded-md border border-transparent hover:border-yellow-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"></path></svg>
+                        <span id="flag-text">Flag for Review</span>
+                    </button>
+                </div>
+                
+                <div class="text-xl mb-8 leading-relaxed font-medium" id="question-text">
+                    <!-- Question text -->
+                </div>
+
+                <div id="options-container" class="flex flex-col gap-3 mb-8">
+                    <!-- Options injected here -->
+                </div>
+
+                <!-- Footer Navigation -->
+                <div class="mt-auto pt-6 border-t dark:border-gray-700 flex justify-between items-center">
+                    <button onclick="prevQuestion()" id="btn-prev" class="px-6 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        ก่อนหน้า (Previous)
+                    </button>
+                    <button onclick="nextQuestion()" id="btn-next" class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        ถัดไป (Next)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Grid (Sidebar) -->
+            <div class="w-full md:w-80 flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex flex-col">
+                <h3 class="text-lg font-semibold mb-4 border-b dark:border-gray-700 pb-2">Question Grid</h3>
+                <div id="question-grid" class="grid grid-cols-5 gap-2 mb-6">
+                    <!-- Grid buttons injected here -->
+                </div>
+                <div class="mt-auto flex flex-col gap-2">
+                    <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        <div class="w-4 h-4 bg-blue-500 rounded"></div> ตอบแล้ว
+                        <div class="w-4 h-4 bg-yellow-500 rounded ml-2"></div> ปักหมุด
+                    </div>
+                    <button onclick="showSubmitModal()" class="w-full py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold transition">
+                        ส่งข้อสอบ (Submit)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen 3: Results -->
+        <div id="result-screen" class="hidden w-full flex-grow flex-col items-center">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 w-full max-w-3xl text-center mb-8">
+                <h2 class="text-3xl font-bold mb-2">สอบเสร็จสิ้น!</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-6" id="result-chapter-name">บทที่ X</p>
+                
+                <div class="flex justify-center items-center gap-8 mb-8">
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500 uppercase tracking-wide">คะแนนของคุณ</p>
+                        <p class="text-5xl font-bold text-blue-600 dark:text-blue-400" id="result-score">0/10</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500 uppercase tracking-wide">เปอร์เซ็นต์</p>
+                        <p class="text-5xl font-bold text-green-600 dark:text-green-400" id="result-percent">0%</p>
+                    </div>
+                </div>
+
+                <button onclick="goHome()" class="px-8 py-3 bg-gray-800 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-900 dark:hover:bg-gray-600 transition">
+                    กลับหน้าหลัก
+                </button>
+            </div>
+
+            <!-- Detailed Review -->
+            <div class="w-full max-w-4xl bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                <h3 class="text-xl font-bold mb-6 border-b pb-4 dark:border-gray-700">เฉลยข้อสอบอย่างละเอียด</h3>
+                <div id="review-container" class="flex flex-col gap-8">
+                    <!-- Review items injected here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Confirm Submit -->
+    <div id="submit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <h3 class="text-xl font-bold mb-4">ยืนยันการส่งข้อสอบ?</h3>
+            <ul class="mb-6 space-y-2 text-gray-700 dark:text-gray-300">
+                <li class="flex justify-between"><span>ตอบแล้ว:</span> <span id="modal-answered" class="font-semibold text-blue-600">0</span></li>
+                <li class="flex justify-between"><span>ยังไม่ตอบ:</span> <span id="modal-unanswered" class="font-semibold text-red-600">0</span></li>
+                <li class="flex justify-between"><span>ปักหมุดไว้:</span> <span id="modal-flagged" class="font-semibold text-yellow-600">0</span></li>
+            </ul>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">หากกดยืนยันแล้ว คุณจะไม่สามารถแก้ไขคำตอบได้อีก</p>
+            <div class="flex gap-4">
+                <button onclick="closeSubmitModal()" class="flex-1 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition">กลับไปทำต่อ</button>
+                <button onclick="finishExam()" class="flex-1 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white transition">ยืนยันส่งข้อสอบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data & Logic -->
+    <script>
+        // --- 1. ข้อมูลข้อสอบ บทที่ 7 - 13 (แปลงจากข้อสอบพร้อมเฉลย) ---
+        const rawExamData = [
+            {
+                title: "บทที่ 7",
+                questions: [
+                    { q: "ข้อผิดพลาดชนิดใดที่มีความบกพร่องเกิดขึ้นเพียง 1 บิตในชุดข้อมูลทั้งหมด?", options: [{text:"CRC Error", c:false}, {text:"Multiple-Bit Error", c:false}, {text:"Burst Error", c:false}, {text:"Single-Bit Error", c:true}] },
+                    { q: "Burst Error มีลักษณะเด่นอย่างไร", options: [{text:"ต้องเป็นบิตที่อยู่ติดกันทั้งหมดเสมอ", c:false}, {text:"มีบิตข้อมูลเปลี่ยนไปตั้งแต่ 2 บิตขึ้นไป โดยนับระยะห่างตั้งแต่บิตแรกที่เริ่มผิดพลาดถึงบิตสุดท้าย", c:true}, {text:"เกิดขึ้นเฉพาะบิตแรกและบิตสุดท้ายเท่านั้น", c:false}, {text:"มีบิตข้อมูลเปลี่ยนไปเพียง 1 บิต", c:false}] },
+                    { q: "เทคนิคการตรวจจับข้อผิดพลาด (Error Detection Method) ใดที่ใช้อัลกอริทึมหารด้วย (Polynomial Division) หรือการหารแบบ Binary ด้วยการทำ XOR?", options: [{text:"CRC", c:true}, {text:"Checksum", c:false}, {text:"Forward Error Correction", c:false}, {text:"Parity Check", c:false}] },
+                    { q: "เทคนิคการตรวจสอบข้อผิดพลาดแบบ Checksum นิยมนำไปใช้งานในโปรโตคอลระดับใด?", options: [{text:"IP, TCP, UDP", c:true}, {text:"Ethernet และ Wi-Fi", c:false}, {text:"Physical Layer", c:false}, {text:"Data Link Layer", c:false}] },
+                    { q: "วิธีการตรวจจับข้อผิดพลาดแบบใดที่มีความแม่นยำในการตรวจจับ Burst Error สูงสุด?", options: [{text:"Parity Check", c:false}, {text:"CRC", c:true}, {text:"Checksum", c:false}, {text:"Stop-and-Wait", c:false}] },
+                    { q: "เทคนิค Sliding Window ช่วยเพิ่มประสิทธิภาพการรับส่งข้อมูลอย่างไร?", options: [{text:"เมื่อเกิดข้อผิดพลาดจะหยุดส่งข้อมูลอย่างถาวร", c:false}, {text:"ช่วยให้ผู้ส่งสามารถส่งข้อมูลหลายๆ เฟรม หรือแพ็กเก็ตไปได้พร้อมกันก่อนที่จะได้รับสัญญาณตอบรับ (ACK)", c:true}, {text:"แก้ไขข้อผิดพลาดโดยผู้รับทำได้ด้วยตนเอง โดยไม่ต้องส่งข้อมูลใหม่", c:false}, {text:"ช่วยให้ผู้ส่งสามารถส่งข้อมูลได้ทีละ 1 เฟรม เท่านั้น", c:false}] },
+                    { q: "ข้อใดอธิบายการทำงานของ Go-Back-N ARQ ได้ถูกต้อง", options: [{text:"แก้ไขบิตที่ผิดพลาดได้ด้วยตนเองโดยไม่ต้องร้องขอการส่งซ้ำ", c:false}, {text:"ส่งซ้ำเฉพาะเฟรมที่มีปัญหาเท่านั้น", c:false}, {text:"เมื่อพบเฟรมผิดพลาด ผู้ส่งจะต้องย้อนกลับไปส่งใหม่ทั้ง Window ตั้งแต่เฟรมที่มีปัญหาเป็นต้นไป", c:true}, {text:"ส่งข้อมูลออกไปทีละ 1 เฟรมแล้วหยุดรอสัญญาณตอบรับ (ACK)", c:false}] },
+                    { q: "การควบคุมข้อผิดพลาดแบบ Stop-and-Wait ARQ ผู้ส่งจะส่งเฟรมถัดไปได้ในกรณีใด?", options: [{text:"ต้องได้รับสัญญาณตอบรับ (ACK) จากผู้รับก่อน", c:true}, {text:"เมื่อสัญญาณหมดเวลา (Timeout)", c:false}, {text:"เมื่อได้รับการแจ้งเตือน NACK", c:false}, {text:"ส่งเฟรมถัดไปได้ทันทีโดยไม่ต้องรอ ACK", c:false}] },
+                    { q: "วิธีแก้ไขข้อผิดพลาดแบบ Forward Error Correction (FEC) มีข้อเสียหลักตรงกับข้อใด?", options: [{text:"ต้องรองรับการจัดเรียงเฟรมแบบอัตโนมัติที่ฝั่งผู้รับ", c:false}, {text:"สิ้นเปลือง Bandwidth ในภาวะปกติ เนื่องจากต้องเพิ่ม Redundancy Bits มากขึ้น", c:true}, {text:"ไม่สามารถแก้ไขบิตที่ผิดพลาดได้ด้วยตนเอง", c:false}, {text:"ทำให้เสียเวลา Delay ในการส่งซ้ำมากขึ้น", c:false}] },
+                    { q: "Selective Repeat ARQ มีข้อดีที่แตกต่างจาก Go-Back-N ARQ อย่างไรเมื่อเกิดข้อผิดพลาด?", options: [{text:"ต้องหยุดรอรับ ACK ทุกๆ 1 เฟรมเสมอ", c:false}, {text:"ผู้ส่งจะต้องส่งข้อมูลย้อนหลังใหม่ทั้งหมด", c:false}, {text:"ไม่จำเป็นต้องมีบัฟเฟอร์ (Buffer) ในการเก็บข้อมูล", c:false}, {text:"ผู้ส่งจะส่งใหม่เฉพาะเฟรมที่ผิดพลาดหรือสูญหายกลับมาอีกครั้งเท่านั้น", c:true}] },
+                    { q: "หากเปรียบเทียบกลไกการทำงานของ Parity Check และ Checksum ข้อใดกล่าวถึงความสามารถในการตรวจจับข้อผิดพลาดได้อย่างถูกต้องที่สุด?", options: [{text:"Parity Check เพิ่มบิตพิเศษเรียกว่า Parity Bit เพื่อปรับจำนวนเลข 1 ในชุดข้อมูล และมีความแม่นยำในการตรวจจับ Burst Error สูงกว่า Checksum", c:false}, {text:"ทั้ง Parity Check และ Checksum ต่างอาศัยเทคนิค Sliding Window เพื่อตรวจจับการสูญหายของข้อมูลในระดับฮาร์ดแวร์เหมือนกัน", c:false}, {text:"Checksum ตรวจจับข้อผิดพลาดโดยใช้อัลกอริทึมการหารพหุนาม ส่วน Parity Check นับจำนวนบิต 0 แล้วบวกเพิ่มอีก 1 บิตที่ท้ายแพ็กเก็ต", c:false}, {text:"Parity Check ตรวจจับ Single-bit error ได้ดีแต่มีความซับซ้อนต่ำมาก ในขณะที่ Checksum ใช้การบวกบล็อกข้อมูลแบบ 1's Complement", c:true}] },
+                    { q: "ในการสื่อสารข้อมูลแบบ Go-Back-N ARQ และ Selective Repeat ARQ ข้อใดระบุพฤติกรรมเมื่อฝั่งรับพบว่าข้อมูลเกิดความเสียหายได้อย่างถูกต้อง?", options: [{text:"ทั้งสองวิธีจะหยุดรอสัญญาณตอบรับ ACK ทีละ 1 เฟรม (Stop-and-Wait) เสมอ ก่อนที่จะตัดสินใจเก็บบัฟเฟอร์ในฝั่งผู้ส่ง", c:false}, {text:"Go-Back-N ARQ ฝั่งรับจะส่ง NACK และไม่เก็บแพ็กเก็ตที่เหลือไว้ใน Buffer ส่วน Selective Repeat ARQ ฝั่งรับจะส่ง NAK/SREJ และเก็บเฟรมที่ถูกต้องอื่นๆ ใน Buffer", c:true}, {text:"Go-Back-N ARQ จะเก็บแพ็กเก็ตที่เหลือไว้ใน Buffer แล้วส่ง NACK ส่วน Selective Repeat ARQ จะปฏิเสธข้อมูลและบังคับให้ผู้ส่งย้อนกลับไปส่งใหม่ทั้งหมดตั้งแต่เฟรมที่เสีย", c:false}, {text:"Go-Back-N ARQ จะให้ผู้ส่งส่งใหม่เฉพาะเฟรมที่เสียหาย ส่วน Selective Repeat ARQ จะรับเฟรมที่ถูกต้องอื่นๆ ไปเก็บใน Buffer และให้ผู้ส่งส่งเฉพาะเฟรมที่เสียหาย", c:false}] },
+                    { q: "พิจารณาข้อความเกี่ยวกับ 'ชิ้นส่วนและวิธีการตรวจจับข้อผิดพลาดแบบ CRC (Cyclic Redundancy Check)' ข้อใดสรุปได้ถูกต้องตามเนื้อหา?", options: [{text:"CRC เป็นอัลกอริทึมตรวจจับข้อผิดพลาดที่นิยมมากที่สุดในระบบเครือข่าย โดยนำค่า 'เศษเหลือ' ที่ได้จากการหารแบบ Binary มาใช้งาน", c:true}, {text:"CRC บังคับให้ฝั่งรับต้องทำการส่งข้อมูลย้อนกลับไปให้ผู้ส่งทำ Retransmission ใหม่ทุกครั้งที่มีการหารพหุนาม", c:false}, {text:"CRC อาศัยหลักการเพิ่ม Parity Bit เข้าไปในโครงสร้างข้อมูล PNG Signature เพื่อบวกบล็อกข้อมูลแบบ 1's Complement ในระดับฮาร์ดแวร์", c:false}, {text:"CRC จะทำงานโดยการตรวจสอบข้อมูลเฉพาะบิตแรกและบิตสุดท้ายเท่านั้น ส่งผลให้มีความซับซ้อนของระบบอยู่ในระดับต่ำ", c:false}] },
+                    { q: "ข้อใดอธิบายความแตกต่างระหว่าง Single-Bit Error, Multiple-Bit Error และ Burst Error ได้ถูกต้อง?", options: [{text:"Single-Bit Error เกิดความผิดพลาด 1 บิต, Multiple-Bit Error เกิดความผิดพลาดตั้งแต่ 2 บิตขึ้นไปในตำแหน่งที่ติดกันเท่านั้น, Burst Error เกิดความผิดพลาดแบบสุ่มทั่วทั้งเครือข่าย", c:false}, {text:"Single-Bit Error ตรวจจับได้ด้วย CRC เท่านั้น ส่วน Burst Error และ Multiple-Bit Error ตรวจจับได้ด้วยการเพิ่ม Parity Bit ในระดับส่งข้อมูล", c:false}, {text:"Multiple-Bit Error คือความผิดพลาดจากการส่งข้อมูลย้อนกลับ (Retransmission) ส่วน Burst Error คือการที่สัญญาณรบกวนทำให้ข้อมูลหายไปทั้ง Segment", c:false}, {text:"Single-Bit Error เกิดกับข้อมูลเลขฐานสองเปลี่ยนจาก 0 เป็น 1 หรือ 1 เป็น 0 เพียง 1 บิต, ส่วน Burst Error มีบิตเปลี่ยนไปตั้งแต่ 2 บิตขึ้นไป", c:true}] },
+                    { q: "แนวคิดเรื่องการเลือกใช้งาน (Trade-off) และ Forward Error Correction (FEC) ในการจัดการข้อผิดพลาด มีความสัมพันธ์กันอย่างไร?", options: [{text:"Trade-off จะใช้เมื่อเกิด Single-bit error เท่านั้น ส่วน FEC จะใช้จัดการเฉพาะข้อผิดพลาดแบบ Burst Error ที่มีความซับซ้อนต่ำมาก", c:false}, {text:"ทั้งสองวิธีมุ่งเน้นการส่งสัญญาณ NACK กลับไปหาผู้ส่ง เพื่อให้ทำการส่งข้อมูลซ้ำ (Retransmission) ในทุกๆ 1 เฟรมข้อมูล", c:false}, {text:"ทั้งสองวิธีอาศัยการส่งรหัสตรวจสอบไปพร้อมกับข้อมูลหลัก เพื่อให้ฝั่งรับสามารถตรวจจับและแก้ไขความเสียหายได้เองทันที", c:true}, {text:"Trade-off คือการหยุดรอรับ ACK ทีละเฟรม เพื่อแก้ไขข้อผิดพลาด ส่วน FEC คือการหารด้วยพหุนามกำเนิดในระดับฮาร์ดแวร์เพื่อลดขนาดการส่งข้อมูล", c:false}] }
+                ]
+            },
+            {
+                title: "บทที่ 8",
+                questions: [
+                    { q: "ตัวเลข '802' ในโครงการมาตรฐาน IEEE 802 มีที่มาจากสิ่งใด?", options: [{text:"รหัสรุ่นของอุปกรณ์เครือข่าย", c:false}, {text:"จำนวนสมาชิกที่เข้าร่วมพัฒนา", c:false}, {text:"หมายเลขห้องปฏิบัติการของทีม", c:false}, {text:"ปีและเดือนที่เริ่มต้นโครงการ", c:true}] },
+                    { q: "มาตรฐานใดของ IEEE ที่กำหนดขึ้นเพื่อใช้งานกับ 'เครือข่ายแลนแบบใช้สาย (Ethernet)' โดยเฉพาะ?", options: [{text:"IEEE 802.11", c:false}, {text:"IEEE 802.15", c:false}, {text:"IEEE 802.3", c:true}, {text:"IEEE 802.5", c:false}] },
+                    { q: "ใครคือหนึ่งในผู้พัฒนาหลักของเครือข่ายอีเทอร์เน็ตที่ Xerox PARC ในช่วงทศวรรษ 1970?", options: [{text:"Bill Gates", c:false}, {text:"Bob Metcalfe", c:true}, {text:"Steve Jobs", c:false}, {text:"Tim Berners-Lee", c:false}] },
+                    { q: "ในโครงสร้างของเฟรมข้อมูล ส่วนที่เรียกว่า FCS (Frame Check Sequence) ทำหน้าที่อะไร?", options: [{text:"ตรวจสอบความผิดพลาดของข้อมูล", c:true}, {text:"ระบุที่อยู่ MAC Address ของผู้รับปลายทาง", c:false}, {text:"ซิงโครไนซ์สัญญาณก่อนเริ่มส่งข้อมูล", c:false}, {text:"ระบุความยาวและชนิดของโปรโตคอล", c:false}] },
+                    { q: "MAC Address แบบ Ethernet โดยทั่วไปมีขนาดข้อมูลรวมทั้งหมดเท่าใด?", options: [{text:"16 บิต", c:false}, {text:"32 บิต", c:false}, {text:"48 บิต", c:true}, {text:"64 บิต", c:false}] },
+                    { q: "ข้อใดคือลักษณะการทำงานของการส่งข้อมูลแบบ Baseband ซึ่งใช้ใน Ethernet LAN แบบดั้งเดิม?", options: [{text:"ใช้ช่องสัญญาณทั้งหมดของสื่อกลางเพื่อส่งสัญญาณเดียวในช่วงเวลาหนึ่ง", c:true}, {text:"แบ่งสื่อกลางออกเป็นหลายช่องความถี่เพื่อส่งหลายสัญญาณพร้อมกัน", c:false}, {text:"ส่งข้อมูลได้เฉพาะผ่านคลื่นวิทยุไร้สายเท่านั้น", c:false}, {text:"ใช้กระแสไฟฟ้าส่งข้อมูลสลับกับการส่งสัญญาณภาพ", c:false}] },
+                    { q: "การเชื่อมต่อเครือข่ายอีเทอร์เน็ตในปัจจุบัน นิยมใช้รูปแบบ Topology ใดร่วมกับอุปกรณ์ Switch?", options: [{text:"Ring Topology", c:false}, {text:"Bus Topology", c:false}, {text:"Mesh Topology", c:false}, {text:"Star Topology", c:true}] },
+                    { q: "เหตุใดเครือข่ายมาตรฐาน Token Bus (IEEE 802.4) จึงถูกนำไปใช้คุมเครื่องจักรใน สายการผลิต (MAP)?", options: [{text:"มีความเร็วในการส่งข้อมูลสูงที่สุดเมื่อเทียบกับมาตรฐานอื่น", c:false}, {text:"สามารถคำนวณระยะเวลารอคอยสูงสุดที่ข้อมูลจะส่งถึงปลายทางได้แน่นอน", c:true}, {text:"เป็นระบบที่ใช้สายสัญญาณน้อยที่สุด ทำให้ประหยัดต้นทุน", c:false}, {text:"หากสายเคเบิลหลักขาด ระบบก็ยังสามารถทำงานต่อไปได้ตามปกติ", c:false}] },
+                    { q: "เครือข่ายโทเค็นริง (Token Ring - IEEE 802.5) ใช้อุปกรณ์ใดเป็นศูนย์กลางเชื่อมสายสัญญาณจากคอมพิวเตอร์เข้าด้วยกัน?", options: [{text:"Router", c:false}, {text:"Hub", c:false}, {text:"MAU (Multistation Access Unit)", c:true}, {text:"NIC (Network Interface Card)", c:false}] },
+                    { q: "ส่วน Preamble ที่อยู่บริเวณต้นเฟรมของข้อมูลในเครือข่ายทำหน้าที่อะไร?", options: [{text:"ระบุโปรโตคอลชั้นบนที่อยู่ภายในข้อมูล", c:false}, {text:"ซิงโครไนซ์สัญญาณและเตรียมพร้อมรับเฟรม", c:true}, {text:"ตรวจสอบข้อผิดพลาดของข้อมูลระหว่างส่ง", c:false}, {text:"ระบุที่อยู่ทางกายภาพของอุปกรณ์รับส่ง", c:false}] }
+                ]
+            },
+            {
+                title: "บทที่ 9",
+                questions: [
+                    { q: "ข้อใดคือความหมายของ Wireless LAN (WLAN)?", options: [{text:"เครือข่ายคอมพิวเตอร์ที่ใช้งานเฉพาะผ่านสาย LAN เท่านั้น", c:false}, {text:"ระบบเครือข่ายระดับโลกที่เชื่อมต่อด้วยดาวเทียมโดยตรง", c:false}, {text:"เครือข่ายท้องถิ่นที่ใช้คลื่นวิทยุเป็นสื่อกลางในการรับส่งข้อมูลแทนการใช้สาย", c:true}, {text:"เครือข่ายท้องถิ่นที่ต้องเชื่อมต่อด้วยสายเคเบิลเส้นใยแก้วนำแสง (Fiber Optic) เท่านั้น", c:false}] },
+                    { q: "มาตรฐานตระกูลใดของ IEEE ที่ถูกกำหนดให้เป็นมาตรฐานสำหรับเครือข่ายแลนไร้สาย?", options: [{text:"IEEE 802.11", c:true}, {text:"IEEE 802.5", c:false}, {text:"IEEE 802.15", c:false}, {text:"IEEE 802.3", c:false}] },
+                    { q: "การรับส่งสัญญาณเพื่อใช้งานอินเทอร์เน็ต Wi-Fi ทั่วไป ต้องอาศัยองค์ประกอบหลักใดบ้าง?", options: [{text:"เซิร์ฟเวอร์ (Server), สแกนเนอร์ (Scanner), เกตเวย์ (Gateway)", c:false}, {text:"บลูทูธ (Bluetooth), สวิตช์ (Switch), โมเด็ม (Modem)", c:false}, {text:"ฮับ (Hub), สายไฟ (Power Line), เราเตอร์ (Router)", c:false}, {text:"แบนด์วิดท์ (Bandwidth), เกตเวย์ (Gateway), เราเตอร์ (Router)", c:true}] },
+                    { q: "หากต้องการแก้ปัญหา 'จุดอับสัญญาณ' โดยส่งข้อมูลผ่านสายไฟฟ้าในบ้านหลายชั้น ควรใช้อุปกรณ์ใด?", options: [{text:"Powerline Adapter", c:true}, {text:"Hotspot Sharing", c:false}, {text:"Access Point", c:false}, {text:"Range Extender", c:false}] },
+                    { q: "มาตรฐาน Wi-Fi 6 ใช้ชื่อมาตรฐานอย่างเป็นทางการตามข้อใด?", options: [{text:"IEEE 802.11n", c:false}, {text:"IEEE 802.11ax", c:true}, {text:"IEEE 802.11ac", c:false}, {text:"IEEE 802.11be", c:false}] },
+                    { q: "ย่านความถี่ใดที่มีจุดเด่นเรื่องระยะทำการไกล และสามารถทะลุกำแพงได้ดี แต่มักประสบปัญหาสัญญาณรบกวนสูง?", options: [{text:"60 GHz", c:false}, {text:"5 GHz", c:false}, {text:"6 GHz", c:false}, {text:"2.4 GHz", c:true}] },
+                    { q: "กลไกใดที่ถูกนำมาใช้ใน MAC Sublayer ของ Wireless LAN เพื่อหลีกเลี่ยงการชนกันบนสื่อกลางไร้สาย?", options: [{text:"Round Robin", c:false}, {text:"Token Passing", c:false}, {text:"CSMA/CD (Collision Detection)", c:false}, {text:"CSMA/CA (Collision Avoidance)", c:true}] },
+                    { q: "ในกระบวนการทำงานของ CSMA/CA หากอุปกรณ์ตรวจสอบแล้วพบว่าช่องสัญญาณไม่ว่าง จะดำเนินการอย่างไรต่อก่อนส่งข้อมูล?", options: [{text:"ส่งสัญญาณแจ้งเตือนไปยังอุปกรณ์อื่น ทั้งหมดในระบบ", c:false}, {text:"ส่งข้อมูลทั้งหมดทันทีโดยไม่จำเป็นต้องรอ", c:false}, {text:"ปิดการเชื่อมต่อชั่วคราวแล้วเริ่มต้นใหม่", c:false}, {text:"สุ่มค่า Backoff Time และรอเมื่อเวลาถอยหลังหมดจึงส่งข้อมูล", c:true}] },
+                    { q: "เทคโนโลยีใดเริ่มนำมาใช้ในมาตรฐาน 802.11n โดยใช้เสาอากาศหลายต้นในการรับส่งพร้อมกันเพื่อเพิ่มความเร็วและความเสถียร?", options: [{text:"MIMO", c:true}, {text:"OFDMA", c:false}, {text:"CSMA/CD", c:false}, {text:"OFDM", c:false}] },
+                    { q: "หากต้องการเพิ่มความเร็วและความเสถียรของ Wi-Fi บนเราเตอร์สำหรับกิจกรรมที่ต้องการความต่อเนื่อง เช่น การเล่นเกมหรือการสตรีมวิดีโอ ควรตั้งค่าระบบใด?", options: [{text:"การเปิดใช้งานระบบ QoS (Quality of Service)", c:true}, {text:"การเปิด Hotspot Sharing", c:false}, {text:"การปิดการทำงานของ MAC Sublayer", c:false}, {text:"การเปลี่ยนไปใช้คลื่นสัญญาณแบบอนาล็อก", c:false}] }
+                ]
+            },
+            {
+                title: "บทที่ 10",
+                questions: [
+                    { q: "เครือข่ายใดที่ถือเป็นจุดกำเนิดของอินเทอร์เน็ตยุคแรก และเปลี่ยนมาใช้ TCP/IP อย่างเป็นทางการในปี ค.ศ. 1983", options: [{text:"NSFNET", c:false}, {text:"ARPANET", c:true}, {text:"Ethernet", c:false}, {text:"Token Ring", c:false}] },
+                    { q: "การเชื่อมโยงเครือข่ายหลายเครือข่ายที่แตกต่างกันเข้าด้วยกันผ่านอุปกรณ์เราเตอร์ เรียกว่าอะไร", options: [{text:"Subnetting", c:false}, {text:"Routing Table", c:false}, {text:"Internetworking", c:true}, {text:"Addressing", c:false}] },
+                    { q: "ชั้นสื่อสารใดในโมเดล TCP/IP ที่ทำหน้าที่กำหนดที่อยู่ IP และหาเส้นทาง (Routing)", options: [{text:"Application Layer", c:false}, {text:"Transport Layer", c:false}, {text:"Network Layer", c:true}, {text:"Physical Layer", c:false}] },
+                    { q: "IPv4 Address มีความยาวทั้งหมดกี่บิต และแบ่งออกเป็นกี่ octet", options: [{text:"16 บิต แบ่งเป็น 2 octet", c:false}, {text:"32 บิต แบ่งเป็น 4 octet", c:true}, {text:"64 บิต แบ่งเป็น 8 octet", c:false}, {text:"128 บิต แบ่งเป็น 16 octet", c:false}] },
+                    { q: "เลขฐานสอง 11111111.11111111.11111111.00000000 เมื่อแปลงเป็นเลขฐานสิบแบบจุดคั่นแล้ว ตรงกับข้อใด", options: [{text:"255.255.0.0", c:false}, {text:"255.0.0.0", c:false}, {text:"255.255.255.0", c:true}, {text:"255.255.255.255", c:false}] },
+                    { q: "IP Address คลาสใดที่มีช่วงเริ่มต้นของ octet แรกอยู่ระหว่าง 192-223 และเหมาะกับเครือข่ายขนาดเล็ก", options: [{text:"Class A", c:false}, {text:"Class B", c:false}, {text:"Class C", c:true}, {text:"Class D", c:false}] },
+                    { q: "ข้อใดไม่ใช่ประโยชน์ของการทำ Subnetting (การแบ่งเครือข่ายย่อย)", options: [{text:"ลดการสูญเปล่าของ IP Address", c:false}, {text:"เพิ่มความปลอดภัยด้วยการแยกเครือข่าย", c:false}, {text:"ลดปริมาณ Broadcast Traffic", c:false}, {text:"เพิ่มจำนวน IP Address ทั้งหมดในระบบ", c:true}] },
+                    { q: "เมื่อมีการแบ่งซับเน็ต โครงสร้างของ IP Address จะประกอบด้วย 3 ส่วนตามลำดับชั้น ข้อใดถูกต้อง", options: [{text:"Network ID, Subnet ID, Host ID", c:true}, {text:"Class ID, Network ID, Host ID", c:false}, {text:"Subnet ID, Broadcast ID, Host ID", c:false}, {text:"Network ID, Gateway ID, Host ID", c:false}] },
+                    { q: "Subnet Mask 255.255.255.0 เมื่อเขียนในรูปแบบ CIDR Notation ตรงกับข้อใด", options: [{text:"/8", c:false}, {text:"/16", c:false}, {text:"/24", c:true}, {text:"/30", c:false}] },
+                    { q: "ข้อใดคือประโยชน์หลักของการใช้โปรแกรมช่วยคำนวณซับเน็ต (Subnet Calculator) แทนการคำนวณด้วยมือ", options: [{text:"เปลี่ยนคลาสของ IP Address โดยอัตโนมัติ", c:false}, {text:"ลดความผิดพลาดและคำนวณได้รวดเร็วขึ้น", c:true}, {text:"เพิ่มจำนวน IP Address ที่ใช้งานได้", c:false}, {text:"ทำให้ไม่ต้องใช้ Subnet Mask อีกต่อไป", c:false}] }
+                ]
+            },
+            {
+                title: "บทที่ 11",
+                questions: [
+                    { q: "ชั้นสื่อสารทรานสปอร์ต (Transport Layer) จัดเป็นชั้นสื่อสารลำดับที่เท่าใดใน OSI Model และมีบทบาทหลักอย่างไร?", options: [{text:"เป็นชั้นที่ 4 ทำหน้าที่ส่งข้อมูลจากโปรแกรมต้นทางไปยังโปรแกรมปลายทางแบบ End-to-End", c:true}, {text:"เป็นชั้นที่ 3 ทำหน้าที่นำพาแพ็กเก็ตข้อมูลผ่านเครือข่ายแบบ Hop-to-Hop", c:false}, {text:"เป็นชั้นที่ 5 ทำหน้าที่จัดการเซสชันและการเชื่อมต่อระหว่างแอปพลิเคชัน", c:false}, {text:"เป็นชั้นที่ 7 ทำหน้าที่ให้บริการอินเทอร์เฟซแก่ผู้ใช้โดยตรง", c:false}] },
+                    { q: "ในการส่งมอบข้อมูลแบบ Process-to-Process Delivery ชั้น Transport Layer ใช้สิ่งใดในการระบุโปรแกรมหรือโพรเซสปลายทางที่รับข้อมูล?", options: [{text:"IP Address", c:false}, {text:"MAC Address", c:false}, {text:"Port Number", c:true}, {text:"Domain Name", c:false}] },
+                    { q: "ตามแบบจำลองไคลเอนต์/เซิร์ฟเวอร์ (Client/Server Paradigm) ข้อใดอธิบายบทบาทหน้าที่ได้ถูกต้อง?", options: [{text:"Client คือเครื่องที่ให้บริการ ส่วน Server คือเครื่องที่ร้องขอบริการ", c:false}, {text:"Client และ Server ทำหน้าที่รับส่งข้อมูลโดยไม่ต้องระบุหมายเลขพอร์ต", c:false}, {text:"Server คือโปรแกรมที่ทำหน้าที่ส่งคำขอหน้าเว็บไซต์ไปยัง Web Browser", c:false}, {text:"Client คือเครื่องหรือโปรแกรมที่ร้องขอบริการ และ Server คือเครื่องหรือโปรแกรมที่ให้บริการ", c:true}] },
+                    { q: "ในเรื่องการกำหนดตำแหน่งที่อยู่ (Addressing) หากเปรียบ IP Address เป็น 'บ้านเลขที่' ของเครื่อง แล้ว Port Number เปรียบได้กับสิ่งใด?", options: [{text:"เจ้าของบ้านหรือผู้อยู่อาศัย", c:false}, {text:"ห้องหรือบริการภายในเครื่อง", c:true}, {text:"ชื่อผู้รับหรือบุคคลปลายทาง", c:false}, {text:"ช่องหรือเส้นทางสื่อสารหลัก", c:false}] },
+                    { q: "ข้อใดเป็นลักษณะสำคัญของโปรโตคอล UDP (User Datagram Protocol)?", options: [{text:"เป็น Connectionless, ส่งข้อมูลได้รวดเร็ว, Header มีขนาดเล็ก 8 bytes แต่ไม่รับประกันว่าข้อมูลจะถึงปลายทาง", c:true}, {text:"เป็น Connection-Oriented, มี Flow Control และส่งข้อมูลซ้ำเมื่อข้อมูลสูญหาย", c:false}, {text:"เป็น Message-oriented, รองรับ Multi-homing และส่งข้อมูลหลาย Stream พร้อมกัน", c:false}, {text:"เป็น Connectionless, มีการจัดลำดับข้อมูลแบบ TCP และเน้นความน่าเชื่อถือสูง", c:false}] },
+                    { q: "ขั้นตอนการเริ่มต้นสร้างการเชื่อมต่อของ TCP (TCP 3-Way Handshake) มีลำดับการส่งแพ็กเก็ตอย่างไร?", options: [{text:"ACK → SYN → SYN-ACK", c:false}, {text:"SYN → ACK → SYN-ACK", c:false}, {text:"SYN → SYN-ACK → ACK", c:true}, {text:"SYN-ACK → SYN → ACK", c:false}] },
+                    { q: "จุดเด่นของโปรโตคอล SCTP (Stream Control Transmission Protocol) ที่แตกต่างจากโปรโตคอลอื่นคือข้อใด?", options: [{text:"มีขนาด Header เพียง 8 bytes เหมาะกับงานที่เน้นความเร็วสูงสุด", c:false}, {text:"เป็นโปรโตคอลแบบ Connectionless ที่ไม่การันตีการส่งข้อมูล", c:false}, {text:"เน้นการแปลงชื่อโดเมนให้เป็นหมายเลข IP Address", c:false}, {text:"รองรับการส่งข้อมูลหลาย Stream พร้อมกัน และรองรับ Multi-homing", c:true}] },
+                    { q: "จากการเปรียบเทียบโปรโตคอล งานประเภท Video Streaming / Online Game และงานที่ต้องการความน่าเชื่อถือพร้อมรองรับหลาย Stream เหมาะกับโปรโตคอลใดตามลำดับ?", options: [{text:"UDP และ SCTP", c:true}, {text:"TCP และ UDP", c:false}, {text:"SCTP และ TCP", c:false}, {text:"UDP และ TCP", c:false}] },
+                    { q: "โปรโตคอลในชั้น Application Layer ที่ใช้ในการ 'ส่งอีเมล' ไปยังเซิร์ฟเวอร์ และโปรโตคอลที่ใช้ 'จัดเก็บอีเมลไว้บนเซิร์ฟเวอร์เพื่อจัดการได้หลายอุปกรณ์' คือโปรโตคอลใดตามลำดับ?", options: [{text:"POP3 และ SMTP", c:false}, {text:"SMTP และ IMAP", c:true}, {text:"HTTP และ HTTPS", c:false}, {text:"FTP และ SSH", c:false}] },
+                    { q: "หน้าที่หลักของโปรโตคอล DNS และ DHCP ในชั้น Application Layer คือข้อใด?", options: [{text:"DNS ใช้แจก IP Address อัตโนมัติ / DHCP ใช้เชื่อมต่อเครื่องระยะไกล", c:false}, {text:"DNS ใช้รับส่งไฟล์ระหว่างเครื่อง / DHCP ใช้รับส่งข้อมูลเว็บแบบเข้ารหัส", c:false}, {text:"DNS ใช้แปลงชื่อโดเมนเป็น IP Address / DHCP ใช้รับส่งอีเมล", c:false}, {text:"DNS ใช้แปลงชื่อโดเมนเป็น IP Address / DHCP ใช้แจก IP Address อัตโนมัติ", c:true}] }
+                ]
+            },
+            {
+                title: "บทที่ 12",
+                questions: [
+                    { q: "ข้อใดเป็นมาตรการพื้นฐานในการรักษาความปลอดภัยของระบบเครือข่าย", options: [{text:"ใช้รหัสผ่านเดียวกันทุกระบบ", c:false}, {text:"ใช้รหัสผ่านที่คาดเดาได้ง่าย", c:false}, {text:"ปิดการตรวจสอบสิทธิ์ผู้ใช้", c:false}, {text:"กำหนดรหัสผ่านที่มีความซับซ้อนและเปลี่ยนเป็นระยะ", c:true}] },
+                    { q: "การโจมตีแบบ Brute Force Attack มีลักษณะอย่างไร", options: [{text:"ส่งไวรัสเข้าสู่ระบบ", c:false}, {text:"ทดลองรหัสผ่านหรือคีย์หลาย ๆ รูปแบบ จนกว่าจะถูกต้อง", c:true}, {text:"ปลอมแปลงลายเซ็นดิจิทัล", c:false}, {text:"ปิดการทำงานของ Firewall", c:false}] },
+                    { q: "ข้อใดอธิบายความหมายของ Encryption ได้ถูกต้องที่สุด", options: [{text:"การเปลี่ยนข้อมูลให้อยู่ในรูปแบบที่อ่านได้ง่ายขึ้น", c:false}, {text:"การลบข้อมูลออกจากระบบ", c:false}, {text:"การเปลี่ยนข้อมูลให้อยู่ในรูปแบบที่ไม่สามารถอ่านได้โดยตรง เพื่อป้องกันผู้ไม่มีสิทธิ์เข้าถึง", c:true}, {text:"การสำรองข้อมูลลงบนเซิร์ฟเวอร์", c:false}] },
+                    { q: "ในการเข้ารหัสแบบ Symmetric Encryption ผู้ส่งและผู้รับใช้สิ่งใดในการเข้ารหัสและถอดรหัส", options: [{text:"คีย์เดียวกัน", c:true}, {text:"Private Key เท่านั้น", c:false}, {text:"Public Key เท่านั้น", c:false}, {text:"Password คนละชุด", c:false}] },
+                    { q: "ข้อใดเป็นคุณสมบัติสำคัญของ Public Key Cryptography", options: [{text:"ใช้คีย์เพียงหนึ่งคีย์เท่านั้น", c:false}, {text:"ใช้ Public Key และ Private Key เป็นคู่กัน", c:true}, {text:"ไม่สามารถใช้กับการสื่อสารผ่านอินเทอร์เน็ตได้", c:false}, {text:"ไม่สามารถใช้ในการยืนยันตัวตนได้", c:false}] },
+                    { q: "หากต้องการส่งข้อมูลที่เข้ารหัสด้วย Public Key Cryptography เพื่อให้มีเพียงผู้รับเท่านั้นที่สามารถถอดรหัสได้ ผู้ส่งควรใช้คีย์ใดในการเข้ารหัส", options: [{text:"Private Key ของผู้ส่ง", c:false}, {text:"Public Key ของผู้ส่ง", c:false}, {text:"Private Key ของผู้รับ", c:false}, {text:"Public Key ของผู้รับ", c:true}] },
+                    { q: "Digital Signature มีหน้าที่สำคัญในข้อใด", options: [{text:"เพิ่มความเร็วของอินเทอร์เน็ต", c:false}, {text:"บีบอัดไฟล์ให้มีขนาดเล็กลง", c:false}, {text:"ตรวจสอบความถูกต้องของข้อมูลและยืนยันตัวตนของผู้ส่ง", c:true}, {text:"ป้องกันไวรัสโดยตรง", c:false}] },
+                    { q: "ข้อใดกล่าวถึง PGP (Pretty Good Privacy) ได้ถูกต้อง", options: [{text:"เป็นโปรแกรมสำหรับเพิ่มความเร็วเครือข่าย", c:false}, {text:"เป็นระบบสำหรับเข้ารหัสและรักษาความปลอดภัยของข้อมูล เช่น อีเมล", c:true}, {text:"เป็นระบบปฏิบัติการสำหรับเซิร์ฟเวอร์", c:false}, {text:"เป็นอุปกรณ์ Firewall ชนิดหนึ่ง", c:false}] },
+                    { q: "หน้าที่หลักของ Firewall คืออะไร", options: [{text:"เพิ่มความจุของฮาร์ดดิสก์", c:false}, {text:"เข้ารหัสไฟล์ทั้งหมดในคอมพิวเตอร์", c:false}, {text:"ตรวจสอบและควบคุมการรับส่งข้อมูลระหว่างเครือข่ายตามกฎที่กำหนด", c:true}, {text:"เพิ่มความเร็วของ CPU", c:false}] },
+                    { q: "ข้อใดเป็นตัวอย่างของ System Attack", options: [{text:"การอัปเดตโปรแกรมให้เป็นเวอร์ชันล่าสุด", c:false}, {text:"การสำรองข้อมูลเป็นประจำ", c:false}, {text:"การโจมตีแบบ Denial of Service (DoS) เพื่อทำให้ระบบไม่สามารถให้บริการได้ตามปกติ", c:true}, {text:"การกำหนดสิทธิ์การเข้าถึงไฟล์", c:false}] }
+                ]
+            },
+            {
+                title: "บทที่ 13",
+                questions: [
+                    { q: "ข้อใดอธิบายความแตกต่างระหว่าง UTP และ STP ได้ถูกต้องที่สุด", options: [{text:"UTP ส่งข้อมูลด้วยแสง ส่วน STP ส่งด้วยไฟฟ้า", c:false}, {text:"UTP ไม่มีชั้นป้องกันสัญญาณรบกวนเพิ่มเติม ส่วน STP มี", c:true}, {text:"UTP ใช้ได้เฉพาะภายในบ้าน ส่วน STP ใช้ได้เฉพาะสํานักงาน", c:false}, {text:"UTP มีความเร็วสูงกว่า STP เสมอ", c:false}] },
+                    { q: "หากต้องเดินสายเครือข่ายในบริเวณที่มีสัญญาณรบกวนทางไฟฟ้าสูง ควรพิจารณาสายชนิดใดมากที่สุด", options: [{text:"UTP", c:false}, {text:"STP", c:true}, {text:"Fiber Optic", c:false}, {text:"Coaxial", c:false}] },
+                    { q: "ข้อใดจับคู่ชื่อเต็มของสายได้ถูกต้อง", options: [{text:"UTP = Universal Twisted Pair", c:false}, {text:"STP = Standard Twisted Pair", c:false}, {text:"UTP = Unshielded Twisted Pair", c:true}, {text:"STP = Secure Transmission Pair", c:false}] },
+                    { q: "สาย Ethernet สองด้านถูกเข้าหัวโดยใช้มาตรฐาน T568B เหมือนกันทั้งสองด้าน สายดังกล่าวจัดเป็นแบบใด", options: [{text:"Crossover", c:false}, {text:"Straight-through", c:true}, {text:"Fiber Optic", c:false}, {text:"STP", c:false}] },
+                    { q: "IP Address 192.168.10.25/24 มี Subnet Mask ตรงกับข้อใด", options: [{text:"255.0.0.0", c:false}, {text:"255.255.0.0", c:false}, {text:"255.255.255.0", c:true}, {text:"255.255.255.255", c:false}] },
+                    { q: "จาก IP 192.168.1.100/24 ข้อใดคือ Network Address และ Broadcast Address ตามลำดับ", options: [{text:"192.168.1.1 และ 192.168.1.254", c:false}, {text:"192.168.1.0 และ 192.168.1.255", c:true}, {text:"192.168.0.0 และ 192.168.0.255", c:false}, {text:"192.168.1.100 และ 192.168.1.255", c:false}] },
+                    { q: "ข้อใดเป็น Private IPv4 Address", options: [{text:"8.8.8.8", c:false}, {text:"172.20.5.10", c:true}, {text:"1.1.1.1", c:false}, {text:"203.0.113.10", c:false}] },
+                    { q: "อุปกรณ์ได้รับข้อมูล IP Address, Subnet Mask, Default Gateway และ DNS โดยอัตโนมัติจากระบบเครือข่าย หน้าที่นี้เกี่ยวข้องกับบริการใด", options: [{text:"DNS", c:false}, {text:"DHCP", c:true}, {text:"Ethernet", c:false}, {text:"MAC Address", c:false}] },
+                    { q: "หากเครือข่าย 192.168.1.0/24 ถูกแบ่งออกเป็น 4 Subnets ข้อใดเป็น Network Address ที่ถูกต้องของ Subnet หนึ่ง", options: [{text:"192.168.1.32/26", c:false}, {text:"192.168.1.64/26", c:true}, {text:"192.168.1.100/26", c:false}, {text:"192.168.1.200/26", c:false}] },
+                    { q: "ข้อใดอธิบายการทำงานร่วมกันของ LAN Cable, MAC Address และ IP Address ได้ถูกต้องที่สุด", options: [{text:"LAN Cable ใช้กำหนด IP ส่วน MAC ใช้กำหนด Subnet", c:false}, {text:"LAN Cable เป็นสื่อกลางในการส่งข้อมูล, MAC ใช้ระบุ Network Interface และ IP ใช้ระบุปลายทางในเครือข่าย IP", c:true}, {text:"MAC และ IP ทำหน้าที่เหมือนกันทุกประการ ต่างกันเพียงรูปแบบตัวเลข", c:false}, {text:"IP ใช้เฉพาะการเชื่อมต่อผ่าน Fiber Optic เท่านั้น", c:false}] }
+                ]
+            }
+        ];
+
+        // --- 2. State & Logic ---
+        let currentExamIndex = 0;
+        let activeExamData = [];
+        let userAnswers = {};
+        let flaggedQuestions = new Set();
+        let currentQuestionIndex = 0;
+        let timerInterval;
+        let timeLeft = 15 * 60; // 15 นาที
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcons();
+        }
+
+        function updateThemeIcons() {
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('icon-moon').classList.toggle('hidden', isDark);
+            document.getElementById('icon-sun').classList.toggle('hidden', !isDark);
+        }
+
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+        updateThemeIcons();
+
+        function renderHome() {
+            const list = document.getElementById('chapter-list');
+            list.innerHTML = '';
+            rawExamData.forEach((chapter, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-md hover:border-blue-500 border-2 border-transparent transition text-left flex flex-col gap-2 group';
+                btn.innerHTML = `
+                    <span class="text-xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">${chapter.title}</span>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">จำนวน ${chapter.questions.length} ข้อ • เวลา 15 นาที</span>
+                `;
+                btn.onclick = () => startExam(index);
+                list.appendChild(btn);
+            });
+        }
+
+        function shuffleArray(array) {
+            let curId = array.length;
+            while (0 !== curId) {
+                let randId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                let tmp = array[curId];
+                array[curId] = array[randId];
+                array[randId] = tmp;
+            }
+            return array;
+        }
+
+        function startExam(index) {
+            currentExamIndex = index;
+            userAnswers = {};
+            flaggedQuestions.clear();
+            currentQuestionIndex = 0;
+            timeLeft = 15 * 60;
+
+            const chapter = rawExamData[index];
+            activeExamData = chapter.questions.map(q => {
+                return {
+                    q: q.q,
+                    options: shuffleArray([...q.options])
+                };
+            });
+
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('exam-screen').classList.remove('hidden');
+            document.getElementById('exam-screen').classList.add('flex');
+            
+            document.getElementById('header-title').innerText = `${chapter.title} - โหมดจำลองสอบ`;
+            document.getElementById('timer-display').classList.remove('hidden');
+            
+            startTimer();
+            renderGrid();
+            renderQuestion();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishExam(true);
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const s = (timeLeft % 60).toString().padStart(2, '0');
+            const display = document.getElementById('timer-display');
+            display.innerText = `${m}:${s}`;
+            if (timeLeft < 120) {
+                display.classList.add('text-red-600', 'dark:text-red-400');
+            } else {
+                display.classList.remove('text-red-600', 'dark:text-red-400');
+            }
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('question-grid');
+            grid.innerHTML = '';
+            activeExamData.forEach((_, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `w-10 h-10 rounded-md font-medium text-sm flex items-center justify-center border transition grid-btn ${idx === currentQuestionIndex ? 'active' : ''}`;
+                
+                if (flaggedQuestions.has(idx)) {
+                    btn.classList.add('flagged');
+                } else if (userAnswers[idx] !== undefined) {
+                    btn.classList.add('answered');
+                } else {
+                    btn.classList.add('bg-white', 'dark:bg-gray-700', 'border-gray-300', 'dark:border-gray-600');
+                }
+
+                btn.innerText = idx + 1;
+                btn.onclick = () => {
+                    currentQuestionIndex = idx;
+                    renderQuestion();
+                    renderGrid();
+                };
+                grid.appendChild(btn);
+            });
+        }
+
+        function renderQuestion() {
+            const qData = activeExamData[currentQuestionIndex];
+            document.getElementById('question-number').innerText = `ข้อที่ ${currentQuestionIndex + 1} จาก ${activeExamData.length}`;
+            document.getElementById('question-text').innerText = qData.q;
+            
+            const isFlagged = flaggedQuestions.has(currentQuestionIndex);
+            const flagBtn = document.getElementById('btn-flag');
+            flagBtn.className = `flex items-center gap-2 font-medium px-3 py-1.5 rounded-md border transition ${isFlagged ? 'text-yellow-600 dark:text-yellow-400 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/30' : 'text-gray-500 hover:text-yellow-600 dark:hover:text-yellow-400 border-transparent hover:border-yellow-500'}`;
+            document.getElementById('flag-text').innerText = isFlagged ? 'ปักหมุดแล้ว' : 'ปักหมุด (Flag)';
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            const prefixes = ['ก', 'ข', 'ค', 'ง'];
+
+            qData.options.forEach((opt, idx) => {
+                const isSelected = userAnswers[currentQuestionIndex] === idx;
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-4 rounded-lg border-2 transition-all flex items-start gap-4 ${isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'}`;
+                
+                btn.innerHTML = `
+                    <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold ${isSelected ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200'}">
+                        ${prefixes[idx]}
+                    </div>
+                    <div class="pt-1 text-base text-gray-800 dark:text-gray-200">${opt.text}</div>
+                `;
+                
+                btn.onclick = () => selectOption(idx);
+                container.appendChild(btn);
+            });
+
+            document.getElementById('btn-prev').disabled = currentQuestionIndex === 0;
+            document.getElementById('btn-next').disabled = currentQuestionIndex === activeExamData.length - 1;
+        }
+
+        function selectOption(idx) {
+            userAnswers[currentQuestionIndex] = idx;
+            renderQuestion();
+            renderGrid();
+        }
+
+        function toggleFlag() {
+            if (flaggedQuestions.has(currentQuestionIndex)) {
+                flaggedQuestions.delete(currentQuestionIndex);
+            } else {
+                flaggedQuestions.add(currentQuestionIndex);
+            }
+            renderQuestion();
+            renderGrid();
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion();
+                renderGrid();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < activeExamData.length - 1) {
+                currentQuestionIndex++;
+                renderQuestion();
+                renderGrid();
+            }
+        }
+
+        function showSubmitModal() {
+            const total = activeExamData.length;
+            const answered = Object.keys(userAnswers).length;
+            
+            document.getElementById('modal-answered').innerText = answered;
+            document.getElementById('modal-unanswered').innerText = total - answered;
+            document.getElementById('modal-flagged').innerText = flaggedQuestions.size;
+            
+            document.getElementById('submit-modal').classList.remove('hidden');
+        }
+
+        function closeSubmitModal() {
+            document.getElementById('submit-modal').classList.add('hidden');
+        }
+
+        function finishExam(autoSubmit = false) {
+            clearInterval(timerInterval);
+            closeSubmitModal();
+            
+            let score = 0;
+            activeExamData.forEach((q, idx) => {
+                const userChoice = userAnswers[idx];
+                if (userChoice !== undefined && q.options[userChoice].c === true) {
+                    score++;
+                }
+            });
+
+            document.getElementById('exam-screen').classList.add('hidden');
+            document.getElementById('exam-screen').classList.remove('flex');
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('result-screen').classList.add('flex');
+            document.getElementById('timer-display').classList.add('hidden');
+
+            const total = activeExamData.length;
+            document.getElementById('result-chapter-name').innerText = autoSubmit ? 'หมดเวลา!' : rawExamData[currentExamIndex].title;
+            document.getElementById('result-score').innerText = `${score}/${total}`;
+            document.getElementById('result-percent').innerText = `${Math.round((score/total)*100)}%`;
+
+            renderDetailedReview();
+        }
+
+        function renderDetailedReview() {
+            const container = document.getElementById('review-container');
+            container.innerHTML = '';
+            const prefixes = ['ก', 'ข', 'ค', 'ง'];
+
+            activeExamData.forEach((q, idx) => {
+                const userChoice = userAnswers[idx];
+                let isCorrect = false;
+                if (userChoice !== undefined && q.options[userChoice].c === true) {
+                    isCorrect = true;
+                }
+
+                const item = document.createElement('div');
+                item.className = 'border dark:border-gray-700 rounded-lg p-5';
+                
+                let optionsHtml = '';
+                q.options.forEach((opt, oIdx) => {
+                    let styling = 'text-gray-600 dark:text-gray-400';
+                    let icon = '';
+
+                    if (opt.c) {
+                        styling = 'text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-900/20 p-2 rounded';
+                        icon = '✓ ';
+                    } else if (userChoice === oIdx && !opt.c) {
+                        styling = 'text-red-600 dark:text-red-400 font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded line-through';
+                        icon = '✗ ';
+                    } else {
+                        styling = 'p-2';
+                    }
+
+                    optionsHtml += `<div class="${styling}">${prefixes[oIdx]}. ${icon}${opt.text}</div>`;
+                });
+
+                item.innerHTML = `
+                    <div class="flex gap-3 mb-3">
+                        <span class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded bg-${isCorrect ? 'green' : 'red'}-100 text-${isCorrect ? 'green' : 'red'}-600 font-bold">
+                            ${idx + 1}
+                        </span>
+                        <div class="text-lg font-medium">${q.q}</div>
+                    </div>
+                    <div class="pl-11 space-y-1">
+                        ${optionsHtml}
+                        ${userChoice === undefined ? '<div class="text-sm text-yellow-600 mt-2 font-semibold">⚠️ คุณไม่ได้ตอบข้อนี้</div>' : ''}
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function goHome() {
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('flex');
+            document.getElementById('home-screen').classList.remove('hidden');
+            document.getElementById('header-title').innerText = 'Exam Simulator';
+        }
+
+        renderHome();
+    </script>
+</body>
+</html>
